@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.model_selection import  train_test_split
 from utils import load_data, get_links, dse_normalize, validation, save_all
-from model_PromptSE+ import DSEModel
+from model_PromptSE_plus import DSEModel
 import warnings
 import math
 import time
