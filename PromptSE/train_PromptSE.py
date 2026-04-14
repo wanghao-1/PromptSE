@@ -298,12 +298,17 @@ model.to(device)
 
 #-------------------------------optimizer setup-----------------------------------
 param_group_alpha = [model.alpha] 
-param_group_rest = [p for p in model.parameters() if p is not model.alpha]  
-
+param_group_rest = [
+    p for p in model.parameters() 
+    if p is not model.alpha and p is not model.drug_sum_alpha
+      ]
+param_drug_sum_alpha = [model.drug_sum_alpha] 
 optimizer = optim.Adam(
     [ {'params': param_group_rest, 'lr': args.lr},     
-    {'params': param_group_alpha, 'lr': 0.0001}    ]
+    {'params': param_group_alpha, 'lr': 0.0001},
+    {'params': param_drug_sum_alpha, 'lr': 0.0001}       ]
     , weight_decay=args.weight_decay)
+
 
 
 #--------------------------------training loop-----------------------------------

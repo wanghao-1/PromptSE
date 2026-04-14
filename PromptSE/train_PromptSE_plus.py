@@ -397,5 +397,3 @@ np.savetxt(args.result_path + 'prec', np.array(prec_arr))
 np.savetxt(args.result_path + 'recall', np.array(recall_arr))
 np.savetxt(args.result_path + 'ap', np.array(ap_arr))
 np.savetxt(args.result_path + 'mr', np.array(mr_arr))
-
-
