@@ -56,7 +56,7 @@ def wavelet_encoder(seq):
 
 
 #------------------------data loading functions----------------------------
-def load_data(path="C:/Users/Administrator/Desktop/MLDSP+/MLDSP+/data/", params_path="C:/Users/Administrator/Desktop/MLDSP+/MLDSP+/params/", mpnn="mpnn_toxcast.npy", weave="weave_toxcast.npy", afp="afp_toxcast.npy",
+def load_data(path="/data/", params_path="/params/", mpnn="mpnn_toxcast.npy", weave="weave_toxcast.npy", afp="afp_toxcast.npy",
               nf="nf_toxcast.npy", fpt="drugs.fpt", llm="0403_3plus.xlsx", w2v="w2v.xlsx", model_params="model_params.pth" ,num=1020):
     print('Loading features...')
     fpt_feature = np.zeros((num, 128))
@@ -106,7 +106,7 @@ def sample_links(data, seed, pos_count, neg_count):
 
 
 #------------------------result saving functions----------------------------
-def save_result(outputs, data_set, test_mask, fold, path="C:/Users/Administrator/Desktop/MLDSP+/MLDSP+/result/",
+def save_result(outputs, data_set, test_mask, fold, path="/result/",
                 D_n=1020, S_n=5599):
     mask = torch.from_numpy(np.where(data_set.reshape(D_n, S_n) == 1, 0, 1)).cuda()
     matrix = torch.mul(torch.mul(outputs, mask), test_mask)
@@ -120,8 +120,8 @@ def save_result(outputs, data_set, test_mask, fold, path="C:/Users/Administrator
     np.save(path + 'case_fold' + str(fold), result)
 
 
-def save_all(final_outputs, test_mask, fold, path="C:/Users/Administrator/Desktop/MLDSP+/MLDSP+/result/"):
-    np.save(path + 'result' + str(fold), final_outputs.cpu().detach().numpy())
+def save_all(eval_outputs, test_mask, fold, path="/result/"):
+    np.save(path + 'result' + str(fold), eval_outputs.cpu().detach().numpy())
     np.save(path + 'mask' + str(fold), test_mask.cpu().detach().numpy())
 
 

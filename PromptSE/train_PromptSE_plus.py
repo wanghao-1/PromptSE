@@ -154,10 +154,46 @@ def compute_test(test_set, outputs, mask, test_idx, flag=False):
     return metrics
 
 
-#Hyperparameters ,log and device
-number
-args = parser.parse_args()
+def get_twohop(data_set):
+    data_set=data_set.reshape(args.D_n,args.S_n)
+    data_set_to_drug_drug=np.dot(data_set, data_set.T)
+    data_set_to_se_se=np.dot(data_set.T, data_set)
+    data_set_to_drug_drug= torch.tensor(data_set_to_drug_drug)
+    data_set_to_drug_drug = data_set_to_drug_drug.cuda()
+    data_set_to_se_se= torch.tensor(data_set_to_se_se)
+    data_set_to_se_se = data_set_to_se_se.cuda() 
+    D_u=data_set_to_drug_drug.sum(1)
+    D_i=data_set_to_drug_drug.sum(0)
 
+    user_size,item_size=args.D_n,args.D_n
+    for i in range(user_size):
+        if D_u[i]!=0:
+            D_u[i]=1/D_u[i].sqrt()
+    
+    for i in range(item_size):
+        if D_i[i]!=0:
+            D_i[i]=1/D_i[i].sqrt()
+    #(D_u)^{-0.5}*rate_matrix*(D_i)^{-0.5}
+    data_set_to_drug_drug=D_u.unsqueeze(1)*data_set_to_drug_drug*D_i
+   
+    D_u1=data_set_to_se_se.sum(1)
+    D_i1=data_set_to_se_se.sum(0)
+
+    user_size1,item_size1=args.S_n,args.S_n
+    for i in range(user_size1):
+        if D_u1[i]!=0:
+            D_u1[i]=1/D_u1[i].sqrt()
+    
+    for i in range(item_size1):
+        if D_i1[i]!=0:
+            D_i1[i]=1/D_i1[i].sqrt()
+    #(D_u)^{-0.5}*rate_matrix*(D_i)^{-0.5}
+    data_set_to_se_se=D_u1.unsqueeze(1)*data_set_to_se_se*D_i1
+    return data_set_to_drug_drug,data_set_to_se_se
+
+
+#Hyperparameters ,log and device
+args = parser.parse_args()
 log_save_id = create_log_id(args.log_dir)
 logging_config(folder=args.log_dir, name='log{:d}'.format(number), no_console=False)
 logging.info(args)
@@ -224,43 +260,6 @@ matrix = target.reshape(args.D_n, args.S_n)#
 logging.info('train_mask:{}, matrix {}'.format(np.sum(train_mask), np.sum(matrix)))
 
 
-def get_twohop(data_set):
-    data_set=data_set.reshape(args.D_n,args.S_n)
-    data_set_to_drug_drug=np.dot(data_set, data_set.T)
-    data_set_to_se_se=np.dot(data_set.T, data_set)
-    data_set_to_drug_drug= torch.tensor(data_set_to_drug_drug)
-    data_set_to_drug_drug = data_set_to_drug_drug.cuda()
-    data_set_to_se_se= torch.tensor(data_set_to_se_se)
-    data_set_to_se_se = data_set_to_se_se.cuda() 
-    D_u=data_set_to_drug_drug.sum(1)
-    D_i=data_set_to_drug_drug.sum(0)
-
-    user_size,item_size=args.D_n,args.D_n
-    for i in range(user_size):
-        if D_u[i]!=0:
-            D_u[i]=1/D_u[i].sqrt()
-    
-    for i in range(item_size):
-        if D_i[i]!=0:
-            D_i[i]=1/D_i[i].sqrt()
-    #(D_u)^{-0.5}*rate_matrix*(D_i)^{-0.5}
-    data_set_to_drug_drug=D_u.unsqueeze(1)*data_set_to_drug_drug*D_i
-   
-    D_u1=data_set_to_se_se.sum(1)
-    D_i1=data_set_to_se_se.sum(0)
-
-    user_size1,item_size1=args.S_n,args.S_n
-    for i in range(user_size1):
-        if D_u1[i]!=0:
-            D_u1[i]=1/D_u1[i].sqrt()
-    
-    for i in range(item_size1):
-        if D_i1[i]!=0:
-            D_i1[i]=1/D_i1[i].sqrt()
-    #(D_u)^{-0.5}*rate_matrix*(D_i)^{-0.5}
-    data_set_to_se_se=D_u1.unsqueeze(1)*data_set_to_se_se*D_i1
-    return data_set_to_drug_drug,data_set_to_se_se
-
 #process and get information
 data_set_to_drug_drug,data_set_to_se_se=get_twohop(matrix)[0].float().cpu().numpy(),get_twohop(matrix)[1].float().cpu().numpy()
 
@@ -302,21 +301,21 @@ optimizer = optim.Adam(
 model_state_dict = checkpoint['model_state_dict']
 missing_keys, unexpected_keys = model.load_state_dict(model_state_dict, strict=False)
 start_epoch = checkpoint.get('epoch', 0)  
-best_loss = checkpoint.get('best_loss', float('inf'))  
 
+best_model_path = os.path.join(args.model_path, 'best_model_params.pth')
 t_total = time.time()
 bad_counter = 0
 best_epoch = 0
-best_loss = 0
+best_aupr = 0
 final_outputs = []
 best_valid_metrics = []
 best_test_metrics = []
 for epoch in range(args.epochs):
-    auc, aupr, outputs = [], [], []
-    loss = 0
     t = time.time()
     loss, train_mrr, train_aupr, outputs, drug_embeddings , se_embeddings = train(model, optimizer, 
                                                                                   train_mask, target, train_index, train_set,epoch) ###
+    model.eval()
+    outputs, _, _ = model() 
     valid_metrics = compute_test(valid_set, outputs, valid_mask, valid_index)
     valid_mrr, valid_aupr = valid_metrics[0], valid_metrics[1]
     test_metrics = compute_test(test_set, outputs, test_mask, test_index)
@@ -324,23 +323,22 @@ for epoch in range(args.epochs):
 
     logging.info('time: {:.4f}s, train_mrr: {:.4f}, train_aupr: {:.4f}, valid_mrr: {:.4f}, valid_aupr: {:.4f}, loss_train: {:.4f}'.format((time.time() - t), train_mrr, train_aupr, valid_mrr, valid_aupr, loss))
     logging.info('folder= {:02d}, Epoch: {:04d}, test_mrr: {:.4f}, test_aupr: {:.4f}, Best_epoch: {:04d}'.format(counter, (epoch+1), test_mrr, test_aupr, (best_epoch+1)))
-    if valid_aupr > best_loss:
+    if valid_aupr > best_aupr:
 
-        best_loss = valid_aupr
+        best_aupr = valid_aupr
         best_epoch = epoch
         bad_counter = 0
         final_outputs = outputs
         best_valid_metrics = compute_test(valid_set, outputs, valid_mask, valid_index, True)
         best_test_metrics = compute_test(test_set, outputs, test_mask, test_index, True)
 
-        best_model_path = os.path.join(args.model_path, 'best_model_params.pth')
         torch.save({
-            'epoch': best_epoch,
+            'epoch': best_epoch+1,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'best_loss': best_loss,
+            'best_aupr': best_aupr,
         }, best_model_path)
-        logging.info(f"Best model saved to {best_model_path} (epoch {best_epoch}, valid_aupr={best_loss:.4f})")
+        logging.info(f"Best model saved to {best_model_path} (epoch {best_epoch+1}, valid_aupr={best_aupr:.4f})")
 
     else:
         bad_counter += 1
@@ -350,10 +348,9 @@ for epoch in range(args.epochs):
 
 logging.info("Optimization Finished!")
 logging.info("Total time elapsed: {:.4f}s".format(time.time() - t_total))
-logging.info('Loading {:04d}th epoch'.format(best_epoch))
+logging.info('Loading {:04d}th epoch'.format(best_epoch+1))
   
 # test
-save_all(final_outputs, test_mask, counter)
 if best_valid_metrics is None:  
     best_valid_metrics = compute_test(valid_set, final_outputs, valid_mask, valid_index, True)
 if best_test_metrics is None:
@@ -368,23 +365,9 @@ logging.info('Test set results:, folder= {:02d}, test_auc: {:.4f}, test_aupr: {:
                 'test_f1: {:.4f}, test_macrof1: {:.4f}, test_ap: {:.4f}, test_mr: {:.4f}, test_prec: {:.4f}, test_recall: {:.4f}'.format(
     counter, test_auc, test_aupr, mcc, f1, macro_f1, ap, mr, prec, recall))
 
-
-logging.info("Loading best model from epoch {} for eval-mode evaluation.".format(best_epoch))
-checkpoint = torch.load(best_model_path)  
-model.load_state_dict(checkpoint['model_state_dict'])  
-model.eval()
-with torch.no_grad():
-    eval_outputs, _, _ = model() 
-eval_auc, eval_aupr, eval_prec, eval_recall, eval_mcc, eval_f1, eval_macro_f1, eval_ap, eval_mr = compute_test(
-    test_set, eval_outputs, test_mask, test_index, True
-)
-logging.info('========== Eval-mode Test Results ==========')
-logging.info('AUC: {:.4f}, AUPR: {:.4f}, MCC: {:.4f}, F1: {:.4f}, macro_f1: {:.4f}, AP: {:.4f}, MR: {:.4f}, Prec: {:.4f}, Recall: {:.4f}'
-             .format(eval_auc, eval_aupr, eval_mcc, eval_f1, eval_macro_f1, eval_ap, eval_mr, eval_prec, eval_recall))
-
   
 # save results
-valid_aupr_arr.append(best_loss)
+valid_aupr_arr.append(best_aupr)
 auc_arr.append(test_auc)
 aupr_arr.append(test_aupr)
 mcc_arr.append(mcc)
@@ -414,5 +397,5 @@ np.savetxt(args.result_path + 'prec', np.array(prec_arr))
 np.savetxt(args.result_path + 'recall', np.array(recall_arr))
 np.savetxt(args.result_path + 'ap', np.array(ap_arr))
 np.savetxt(args.result_path + 'mr', np.array(mr_arr))
-counter += 1
+
 

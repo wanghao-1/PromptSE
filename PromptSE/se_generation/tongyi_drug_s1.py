@@ -23,14 +23,14 @@ excel_path_split = f'data_drug_s1/drug_0403_split_n{num_drug}_{modeltype}_s1.xls
 json_path_query = f'data_drug_s1/drug_0403_query_n{num_drug}_{modeltype}_s1.json'
 
 # ==================== Load Drug and Side Effect Names ====================
-drugs_df = pd.read_excel('C:/Users/Administrator/Desktop/MLDSP+/profile_generation_all/profile_generation_all/data_pt/drug_id.xlsx', sheet_name='Sheet1')
-se_df = pd.read_excel('C:/Users/Administrator/Desktop/MLDSP+/profile_generation_all/profile_generation_all/data_pt/se_id.xlsx', sheet_name='Sheet1')
+drugs_df = pd.read_excel('/data_pt/drug_id.xlsx', sheet_name='Sheet1')
+se_df = pd.read_excel('/data_pt/se_id.xlsx', sheet_name='Sheet1')
 
 drug_all = drugs_df['drug'].tolist()
 se_all = se_df['side effect'].tolist()
 
 # ==================== Build Drug-Side Effect Matrix ====================
-matrix_df = pd.read_excel('C:/Users/Administrator/Desktop/MLDSP+/profile_generation_all/profile_generation_all/data_pt/drug_eff.xlsx')
+matrix_df = pd.read_excel('/data_pt/drug_eff.xlsx')
 matrix_df = matrix_df.set_index(matrix_df.columns[0])   # First column as index (drug names)
 matrix_df.columns = se_all                              # Columns = side effects
 
@@ -39,12 +39,12 @@ drug_selected = matrix_df.sum(axis=1).sort_values(ascending=False).index.tolist(
 index_selected = [drug_all.index(drug) for drug in drug_selected]
 
 # Save selected drug names and their original indices
-selected_filename = f'C:/Users/Administrator/Desktop/MLDSP+/profile_generation_all/profile_generation_all/data_pt/drugs_top{num_drug}.pkl'
+selected_filename = f'/data_pt/drugs_top{num_drug}.pkl'
 with open(selected_filename, 'wb') as f:
     pickle.dump([drug_selected, index_selected], f)
 
 # ==================== Load Initial Drug Descriptions ====================
-excel_inpath = f"C:/Users/Administrator/Desktop/MLDSP+/profile_generation_all/profile_generation_all/data_pt/drug_definition.xlsx"
+excel_inpath = f"/data_pt/drug_definition.xlsx"
 drug_des_df = pd.read_excel(excel_inpath, sheet_name='Sheet1')
 drug_descriptions = dict(zip(drug_des_df['drug'], drug_des_df['drug-target interactions']))
 
