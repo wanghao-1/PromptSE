@@ -1,0 +1,19 @@
+{
+  "run_name": "mldsp_dsgat_like_custom_seed10_ep2000_lr0.005_wd0.0001_kk2_20260414_133944",
+  "device": "cuda:0",
+  "log_path": "/xiayuqing/Km/MLDSP+/log_cold/mldsp_dsgat_like_custom_seed10_ep2000_lr0.005_wd0.0001_kk2_20260414_133944_20260414_133944.log",
+  "fold_count": 1,
+  "split_mode": "custom_drug",
+  "seed": 10,
+  "save_model": true,
+  "checkpoint_dir": "/xiayuqing/Km/MLDSP+/result_cold/mldsp_dsgat_like_custom_seed10_ep2000_lr0.005_wd0.0001_kk2_20260414_133944/checkpoints",
+  "mean_metrics": {
+    "AUC": 0.8891461598016336,
+    "AUPR": 0.3303393888113751,
+    "F1_SCORE": 0.38056777289084365,
+    "MACRO_F1": 0.6833503946186357,
+    "MCC": 0.36713058904080975,
+    "score_threshold": 0.5,
+    "label_threshold": 0.5
+  }
+}
